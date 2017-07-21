@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Spring Schema -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+	http://www.springframework.org/schema/tx 
+	http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+	http://www.springframework.org/schema/aop 
+	http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+	http://www.springframework.org/schema/data/mongo 
+	http://www.springframework.org/schema/data/mongo/spring-mongo-1.0.xsd">
+    
+	<!-- Bean -->
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource"
+		destroy-method="close" p:driverClass="com.mysql.jdbc.Driver"
+		p:jdbcUrl="jdbc:mysql://localhost:3306/bookstore" p:user="root"
+		p:password="224027" p:maxPoolSize="40" p:minPoolSize="1"
+		p:initialPoolSize="1" p:maxIdleTime="20" />
+
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate3.LocalSessionFactoryBean"
+		p:dataSource-ref="dataSource">
+		<property name="mappingResources">
+			<list>
+				<value>model/Book.hbm.xml</value>
+				<value>model/Order.hbm.xml</value>
+				<value>model/OrderItem.hbm.xml</value>
+				<value>model/User.hbm.xml</value>
+			</list>
+		</property>
+		<!-- Hibernate SessionFactory -->
+		<property name="hibernateProperties">
+			<value>
+				hibernate.dialect=org.hibernate.dialect.MySQLInnoDBDialect
+				hibernate.hbm2ddl.auto=update
+				hibernate.show_sql=true
+				hibernate.format_sql=true
+			</value>
+		</property>
+	</bean>
+
+	<!-- DAO Bean -->
+	<bean id="bookDao" class="dao.impl.BookDaoImpl">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+	<bean id="orderDao" class="dao.impl.OrderDaoImpl">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+	<bean id="orderItemDao" class="dao.impl.OrderItemDaoImpl">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+	<bean id="userDao" class="dao.impl.UserDaoImpl">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+	
+	<bean id="MongoConfig" class="util.MongoConfig">
+        <property name="host">
+            <value>127.0.0.1</value>
+        </property>
+        <property name="port">
+            <value>27017</value>
+        </property>
+        <property name="dbname">
+            <value>bookstore</value>
+        </property>
+    </bean>
+
+	<!-- Service -->
+	
+	<bean id="bookService" class="service.impl.BookServiceImpl">
+		<!-- DAO -->
+		<property name="bookDao" ref="bookDao"></property>
+	</bean>
+	
+	<bean id="userService" class="service.impl.UserServiceImpl">
+		<!-- DAO -->
+		<property name="userDao" ref="userDao"></property>
+	</bean>
+	
+	<bean id="orderService" class="service.impl.OrderServiceImpl">
+		<!-- DAO -->
+		<property name="orderDao" ref="orderDao"></property>
+	</bean>
+	
+	<bean id="orderItemService" class="service.impl.OrderItemServiceImpl">
+		<!-- DAO -->
+		<property name="orderItemDao" ref="orderItemDao"></property>
+	</bean>
+
+	<!-- HibernateTransactionManager -->
+	<bean id="transactionManager"
+		class="org.springframework.orm.hibernate3.HibernateTransactionManager"
+		p:sessionFactory-ref="sessionFactory" />
+
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="get*" read-only="true" />
+			<tx:method name="*" />
+		</tx:attributes>
+	</tx:advice>
+	<aop:config>
+		<!-- appService Bean -->
+		<aop:pointcut id="bookBeanPointcut" expression="bean(bookService)" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="bookBeanPointcut" />
+	</aop:config>
+	<aop:config>
+		<!-- appService Bean -->
+		<aop:pointcut id="userBeanPointcut" expression="bean(userService)" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="userBeanPointcut" />
+	</aop:config>
+	<aop:config>
+		<!-- appService Bean -->
+		<aop:pointcut id="orderBeanPointcut" expression="bean(orderService)" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="orderBeanPointcut" />
+	</aop:config>
+	<aop:config>
+		<!-- appService Bean -->
+		<aop:pointcut id="orderItemBeanPointcut" expression="bean(orderItemService)" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="orderItemBeanPointcut" />
+	</aop:config>
+
+</beans>

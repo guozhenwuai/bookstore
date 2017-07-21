@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+    "http://struts.apache.org/dtds/struts-2.0.dtd">
+
+<struts>
+	<constant name="struts.ui.theme" value="simple" />
+	<constant name="struts.ui.templateDir" value="template" />
+	<constant name="struts.ui.templateSuffix" value="ftl" />
+	<constant name="struts.enable.DynamicMethodInvocation" value="true"/>
+
+	<constant name="struts.devMode" value="true" />
+	<constant name="refreshModelBeforeResult" value="true"/>
+
+	<package name="process" extends="json-default">
+		
+ 		<interceptors>
+ 			<interceptor name="user_auth"  
+                class="interceptor.UserInterceptor">  
+            </interceptor>  
+            <interceptor name="admin_auth"  
+                class="interceptor.AdminInterceptor">  
+            </interceptor>
+            <interceptor-stack name="userCheckStack">  
+                <interceptor-ref name="defaultStack" />  
+                <interceptor-ref name="user_auth" />  
+            </interceptor-stack> 
+            <interceptor-stack name="adminCheckStack">  
+                <interceptor-ref name="defaultStack" />  
+                <interceptor-ref name="admin_auth" />  
+            </interceptor-stack> 
+ 		</interceptors>
+ 		
+ 		<global-results>
+			<result name="not_user">/auth/not_user.jsp</result>
+			<result name="not_admin">/auth/not_admin.jsp</result>
+		</global-results>
+            
+		<action name="homepage" class="action.HomepageActions" method="list">
+			<interceptor-ref name="userCheckStack"/>
+			<result name="success">/index.jsp</result>
+		</action>
+		
+		<action name="category" class="action.HomepageActions" method="category">
+			<interceptor-ref name="userCheckStack"/>
+			<result name="success">/category.jsp</result>
+		</action>
+		
+		<action name="search" class="action.HomepageActions" method="search">
+			<interceptor-ref name="userCheckStack"/>
+			<result name="success">/category.jsp</result>
+		</action>
+		
+		<!-- Book -->
+		<action name="book" class="action.BookActions">
+			<interceptor-ref name="adminCheckStack"/>
+			<interceptor-ref name="fileUploadStack">
+				<param name="allowedTypes">image/png,image/gif,image/jpeg</param>
+				<param name="maximumSize">102400</param>
+			</interceptor-ref> 
+			<interceptor-ref name="modelDrivenStack"/> 
+			<result name="success">/book!list</result>
+			<result name="list">/admin/book.jsp</result>
+		</action>
+		
+		<action name="getCover" class="action.CoverAction" method="show">
+			<interceptor-ref name="userCheckStack"/>
+			<result type="stream" >
+				<param name="contentType">image/png,image/gif,image/jpeg</param>
+				<param name="inputName">inputStream</param>
+			</result>
+		</action>
+		
+		<action name="bookDetail" class="action.BookActions" method="detail">
+			<interceptor-ref name="userCheckStack"/>
+			<result name="success" type="json">
+				<param name="root">result</param>
+			</result>
+		</action>
+		
+		<!-- User -->
+		<action name="user" class="action.UserActions">
+			<interceptor-ref name="adminCheckStack"/>
+			<result name="success">/user!list</result>
+			<result name="list">/admin/user.jsp</result>
+			<result name="login">/login.jsp</result>
+			<result type="redirectAction" name="user">homepage</result>
+			<result type="redirectAction" name="admin">book!list</result>
+		</action>
+		
+		<action name="login" class="action.UserActions" method="login">
+			<result name="login">/login.jsp</result>
+			<result type="redirectAction" name="user">homepage</result>
+			<result type="redirectAction" name="admin">book!list</result>
+		</action>
+		
+		<action name="register" class="action.UserActions" method="register">
+			<result type="redirectAction" name="user">homepage</result>
+		</action>
+		
+		<action name="logout" class="action.UserActions" method="logout">
+			<interceptor-ref name="userCheckStack"/>
+			<result name="login">/login.jsp</result>
+		</action>
+		
+		<action name="nameCheck" class="action.UserActions" method="nameAvail">
+			<result type="stream">
+				<param name="contentType">text/plain</param>
+				<param name="inputName">inputStream</param>
+			</result>
+		</action>
+		
+		<action name="getAvatar" class="action.AvatarAction" method="show">
+			<interceptor-ref name="userCheckStack"/>
+			<result type="stream" >
+				<param name="contentType">image/png,image/gif,image/jpeg</param>
+				<param name="inputName">inputStream</param>
+			</result>
+		</action>
+		
+		<action name="userProfile" class="action.UserProfileAction">
+			<interceptor-ref name="userCheckStack"/>
+			<result name="success">/userProfile.jsp</result>
+			<result name="resetPassword" type="json">
+				<param name="root">result</param>
+			</result>
+		</action>
+		
+		<action name="updateAvatar" class="action.AvatarAction" method="save">
+			<interceptor-ref name="userCheckStack"/>
+			<interceptor-ref name="fileUploadStack">
+				<param name="allowedTypes">image/png,image/gif,image/jpeg</param>
+				<param name="maximumSize">102400</param>
+			</interceptor-ref> 
+		</action>
+		
+		<!-- Cart -->
+		<action name="cart" class="action.CartActions">
+			<interceptor-ref name="userCheckStack"/>
+			<result type="redirectAction" name="success">homepage</result>
+		</action>
+		
+		<!-- Order -->
+		<action name="order" class="action.OrderActions">
+			<interceptor-ref name="adminCheckStack"/>
+			<result name="success">/order!list</result>
+			<result name="list">/admin/order.jsp</result>
+		</action>
+		
+		<action name="checkOrder" class="action.CheckOrderAction" method="checkOrder">
+			<interceptor-ref name="userCheckStack"/>
+			<result name="success">/checkOrder.jsp</result>
+		</action>
+		
+		<action name="placeOrder" class="action.CheckOrderAction" method="placeOrder">
+			<interceptor-ref name="userCheckStack"/>
+			<result type="redirectAction" name="success">homepage</result>
+		</action>
+		
+		<action name="orderHistory" class="action.OrderActions" method="userSpecOrder">
+			<interceptor-ref name="userCheckStack"/>
+			<result name="history">/historyOrder.jsp</result>
+		</action>
+
+		<!-- OrderItem -->
+		<action name="orderItem" class="action.OrderItemActions">
+			<interceptor-ref name="adminCheckStack"/>
+			<result name="success">/orderItem!list</result>
+			<result name="list">/admin/orderItem.jsp</result>
+			<result name="items" type="json">
+				<param name="root">result</param>
+			</result>
+			<result name="details" type="json">
+				<param name="root">result</param>
+			</result>
+		</action>
+		
+		<action name="itemDetails" class="action.OrderItemActions" method="showItems">
+			<interceptor-ref name="userCheckStack"/>
+			<result name="items" type="json">
+				<param name="root">result</param>
+			</result>
+		</action>
+		
+		<!--  Sales -->
+		<action name="sales" class="action.SalesActions">
+			<interceptor-ref name="adminCheckStack"/>
+			<result name="success" type="json">
+				<param name="root">result</param>
+			</result>
+		</action>
+		
+	</package>
+
+</struts>
